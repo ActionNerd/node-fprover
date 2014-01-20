@@ -13,12 +13,17 @@ server.listen(3000);
 
 console.log("Listening on Port 3000...");
 
-// Sockets experimentation
+// Initialize and work with open sockets
 io.sockets.on('connection', function (socket) {
-	socket.emit('news', { hello: 'world' });
+
+        // Emits a hello world to client with open socket
+        // to the console	
+        socket.emit('news', { hello: 'world' });
 	socket.on('my other event', function (data) {
 		console.log(data);
 	});
+        // Listens for button_down and axis_change events
+        // then logs them
 	socket.on('button_down', function(data) {
 		console.log(data);
 	});
