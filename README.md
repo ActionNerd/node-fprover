@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node-servo-express
 ==================
 
@@ -5,3 +6,9 @@ Node.js app which serves a HTML client and connects with Arduino to drive servos
 controlled camera gimbal.
 
 There are additional js and html files as well as Arduino code.
+=======
+node-fprover
+============
+
+First person rover controlled via webGUI and XBox 360 controller
+>>>>>>> 6abcbb2eb8f3e4bb1766d7fbbc9f822a45a6f481
