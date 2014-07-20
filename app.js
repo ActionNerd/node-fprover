@@ -49,7 +49,7 @@ board.on("ready", function() {
 	
 	// console.log("y-servo slope = " + ySlope + "; y-servo intercept is = " + yInt);
 	// console.log("x-servo slope = " + xSlope + "; x-servo intercept is = " + xInt);
-	
+	console.log(data.stick + " X-Pos: " + data.X + "->" + rStickXtrans + "; Y-Pos: " + data.Y + "->" + rStickYtrans);
 	
 	// **** SOCKETS SOCKETS SOCKETS SOCKETS SOCKETS ****
 	io.sockets.on('connection', function (socket) {
