@@ -13,6 +13,12 @@ var rStickXtrans,
 	yInt,
 	xInt;
 
+var scale = five.Fn.scale;
+
+//  ** Need to do this
+// Add scaling function from issue thread
+// servox.to(scale(data.X, -1, 1, 30, 150));
+// servoy.to(scale(data.Y, -1, 1, 30, 150));
 // Start express server, serving up static files in the RPi public folder
 app.use(express.static(__dirname + '/public'));
 server.listen(3000);
