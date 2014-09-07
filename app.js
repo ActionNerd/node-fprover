@@ -1,21 +1,12 @@
 
-var express = require('express');
-var app = express();
-var io = require('socket.io');
-var five = require("johnny-five"),
-    board = new five.Board({ port: "/dev/ttyAMA0" });
-var server = require('http').createServer(app);
-var io = require('socket.io').listen(server);
-var rStickXtrans,
-    rStickYtrans,
-	ySlope,
-	xSlope,
-	yInt,
-	xInt,
-	xTemp,
-	yTemp;
-
-var scale = five.Fn.scale;
+var express = require('express'),
+    app = express(),
+    io = require('socket.io'),
+    five = require("johnny-five"),
+    board = new five.Board({ port: "/dev/ttyAMA0" }),
+    server = require('http').createServer(app),
+    io = require('socket.io').listen(server),
+    scale = five.Fn.scale;
 
 //  ** Need to do this
 // Add scaling function from issue thread
@@ -29,7 +20,7 @@ console.log("Listening on Port 3000...");
 // Initialize the connection between the node app and the arduino (firmata sketch)
 // Note explicit device path up above "ttyAMA0"; this is for the GPIO serial connection
 board.on("ready", function() {
-
+	
 	// **** declare servo objects
 	// Initialize the two johnny-five servo instances I'm using.
 	// servox is for the "theta" movement -- the left / right on the camera gimbal.
@@ -40,18 +31,40 @@ board.on("ready", function() {
                 pin: 9,
 		range: [37, 135]
         });
-	
         var servoy = new five.Servo({
 		pin: 10,
 		range: [40, 115]
 	});
+	// ****************** place REPL declarations here *************************
 	this.repl.inject({
                 motora: new five.Motor([3, 12])
         });
 
+	// ********************* toPolar function **********************************
+	// ************* changes cartesian coordinates to polar coordinates ********
+
+	 function toPolar(x, y) { // returns polar coordinates as an object (radians)
+		var polarCoords = {};
+		polarCoords.r = Math.sqrt(x * x + y * y);
+		// atan2 provides CCW angle from the positive x axis; this blob normalizes that weirdness
+		polarCoords.theta = Math.PI / 2 - Math.atan2(y, x);
+		if ( polarCoords.theta < 0 ) { 
+			polarCoords.theta += 2 * Math.PI;
+		}
+		return polarCoords;
+	}
+
+	// ********************* moveCameraGimbal function ************************
+	// ************* major function which takes analog input from right stick *
+	// ************* and turns it into 2-axis camera gimbal commands **********
+	var moveCameraGimbal = function(x, y) {
+		return;
+	}
+
+	// ********************** moveRobot function *******************************
+	// ************* major function which turns analog input from left stick ***
+	// ************* and turns it into differential steering commands **********
 	var moveRobot = function(x, y) {
-	        console.log("Inside moveRobot function...");
-        	console.log("Passed X is " + x + ".  Passed Y is " + y + ".");
 
         	if (Math.abs(x) > .5) {
                 	if (x > 0.5) {
@@ -85,44 +98,19 @@ board.on("ready", function() {
 
 		return;
 	}
-
-
-	ySlope = (servoy.range[1] - servoy.range[0])/2;
-	yInt = servoy.range[1] - ySlope;
 	
-	xSlope = (servox.range[1] - servox.range[0])/2;
-	xInt = servox.range[1] - xSlope;
-	
-	// console.log("y-servo slope = " + ySlope + "; y-servo intercept is = " + yInt);
-	// console.log("x-servo slope = " + xSlope + "; x-servo intercept is = " + xInt);
-	// console.log(data.stick + " X-Pos: " + data.X + "->" + rStickXtrans + "; Y-Pos: " + data.Y + "->" + rStickYtrans);
-	
-	// **** SOCKETS SOCKETS SOCKETS SOCKETS SOCKETS ****
+	// **** SOCKETS SOCKETS SOCKETS SOCKETS SOCKETS ****************************
+	// **** program "loop" below ***********************************************
 	io.sockets.on('connection', function (socket) {
-		// **** BUTTONS ****
-		// **** Go to function which handles button pushes
-		
-		socket.on('button_down', function(data) {
-			console.log(data);
-		});
-		
 		socket.on('axis_change', function(data) {
-
 			// **** RIGHT STICK ****
-			// **** Go to function which handles camera gimbal movement
 			if (data.stick == 'RIGHT_STICK') {
-				rStickXtrans = Math.round(xSlope * data.X + xInt);
-				rStickYtrans = Math.round(ySlope * data.Y + yInt);
-				console.log(data.stick + " X-Pos: " + rStickXtrans + "; Y-Pos: " + rStickYtrans); 
-				servox.to(rStickXtrans);
-				servoy.to(rStickYtrans);
+				moveCameraGimbal(data.X, data.Y);	
 			}
       			// **** LEFT STICK ****
                         if (data.stick == 'LEFT_STICK') {
 				moveRobot(data.X, data.Y);
                         }
-	
-
          	}); 
 	});
 });
