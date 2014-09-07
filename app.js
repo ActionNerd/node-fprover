@@ -11,7 +11,9 @@ var rStickXtrans,
 	ySlope,
 	xSlope,
 	yInt,
-	xInt;
+	xInt,
+	xTemp,
+	yTemp;
 
 var scale = five.Fn.scale;
 
@@ -28,25 +30,63 @@ console.log("Listening on Port 3000...");
 // Note explicit device path up above "ttyAMA0"; this is for the GPIO serial connection
 board.on("ready", function() {
 
-	// **** declare pin objects
-    // The "pin" portion is just a simple way to test connectivity.
-	// I connected a LED to pin 12 to make sure I had good comms
-	// between RPi and Arduino.  Hitting FACE_3 on the controller
-	// illuminates the LED.
-	var led = new five.Led(12);
-	
 	// **** declare servo objects
 	// Initialize the two johnny-five servo instances I'm using.
 	// servox is for the "theta" movement -- the left / right on the camera gimbal.
 	// servoy is for the "phi" movement -- the up / down on the camera gimbal.
+        var motora = new five.Motor([3, 12]); 
+        var motorb = new five.Motor([11, 13]);
 	var servox = new five.Servo({
-        pin: 9,
+                pin: 9,
 		range: [37, 135]
-    });
-	var servoy = new five.Servo({
+        });
+	
+        var servoy = new five.Servo({
 		pin: 10,
 		range: [40, 115]
 	});
+	this.repl.inject({
+                motora: new five.Motor([3, 12])
+        });
+
+	var moveRobot = function(x, y) {
+	        console.log("Inside moveRobot function...");
+        	console.log("Passed X is " + x + ".  Passed Y is " + y + ".");
+
+        	if (Math.abs(x) > .5) {
+                	if (x > 0.5) {
+                        	// Right Twist
+                        	motora.forward(scale(x, 0.5, 1, 90, 255));
+                        	motorb.reverse(scale(x, 0.5, 1, 90, 255));
+                	}
+                	if (x < -0.5) {
+                		// Left Twist
+                        	motora.reverse(scale(x, -0.5, -1, 90, 255));
+                        	motorb.forward(scale(x, -0.5, -1, 90, 255));
+                	}
+
+            	}
+                	else {
+                    	if (Math.abs(y) < 0.06) {
+                        	motora.stop();
+                        	motorb.stop();
+                    	}
+                    		else {
+                        		if (y < -0.06) {
+                            			motora.forward(scale(y, 0, -1, 90, 255));
+                           	 		motorb.forward(scale(y, 0, -1, 90, 255));
+                        		}	
+                                        if (y > 0.06) {
+                                    		motora.reverse(scale(y, 0, 1, 90, 255));
+                                         	motorb.reverse(scale(y, 0, 1, 90, 255));
+                                        }
+                            	}
+                	}
+
+		return;
+	}
+
+
 	ySlope = (servoy.range[1] - servoy.range[0])/2;
 	yInt = servoy.range[1] - ySlope;
 	
@@ -55,7 +95,7 @@ board.on("ready", function() {
 	
 	// console.log("y-servo slope = " + ySlope + "; y-servo intercept is = " + yInt);
 	// console.log("x-servo slope = " + xSlope + "; x-servo intercept is = " + xInt);
-	console.log(data.stick + " X-Pos: " + data.X + "->" + rStickXtrans + "; Y-Pos: " + data.Y + "->" + rStickYtrans);
+	// console.log(data.stick + " X-Pos: " + data.X + "->" + rStickXtrans + "; Y-Pos: " + data.Y + "->" + rStickYtrans);
 	
 	// **** SOCKETS SOCKETS SOCKETS SOCKETS SOCKETS ****
 	io.sockets.on('connection', function (socket) {
@@ -64,9 +104,6 @@ board.on("ready", function() {
 		
 		socket.on('button_down', function(data) {
 			console.log(data);
-			if (data.button == 'FACE_3') { 
-				led.toggle();
-			}
 		});
 		
 		socket.on('axis_change', function(data) {
@@ -80,10 +117,12 @@ board.on("ready", function() {
 				servox.to(rStickXtrans);
 				servoy.to(rStickYtrans);
 			}
-			// **** LEFT STICK ****
-			// **** Go to function which handles camera gimbal movement
-			// For the near future -- waiting on motors, chassis, and motorshield
-		}); 
+      			// **** LEFT STICK ****
+                        if (data.stick == 'LEFT_STICK') {
+				moveRobot(data.X, data.Y);
+                        }
+	
+
+         	}); 
 	});
 });
-
