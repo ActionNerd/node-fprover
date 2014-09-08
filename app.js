@@ -25,16 +25,16 @@ board.on("ready", function() {
 	// Initialize the two johnny-five servo instances I'm using.
 	// servox is for the "theta" movement -- the left / right on the camera gimbal.
 	// servoy is for the "phi" movement -- the up / down on the camera gimbal.
-        var motora = new five.Motor([3, 12]); 
-        var motorb = new five.Motor([11, 13]);
-	var servox = new five.Servo({
+        var motora = new five.Motor([3, 12]),
+            motorb = new five.Motor([11, 13]),
+	    servox = new five.Servo({
                 pin: 9,
 		range: [37, 135]
-        });
-        var servoy = new five.Servo({
+            }),
+            servoy = new five.Servo({
 		pin: 10,
 		range: [40, 115]
-	});
+	    });
 	// ****************** place REPL declarations here *************************
 	this.repl.inject({
                 motora: new five.Motor([3, 12])
@@ -66,36 +66,69 @@ board.on("ready", function() {
 	// ************* and turns it into differential steering commands **********
 	var moveRobot = function(x, y) {
 
-        	if (Math.abs(x) > .5) {
-                	if (x > 0.5) {
-                        	// Right Twist
-                        	motora.forward(scale(x, 0.5, 1, 90, 255));
-                        	motorb.reverse(scale(x, 0.5, 1, 90, 255));
-                	}
-                	if (x < -0.5) {
-                		// Left Twist
-                        	motora.reverse(scale(x, -0.5, -1, 90, 255));
-                        	motorb.forward(scale(x, -0.5, -1, 90, 255));
-                	}
+		var polarCoords = toPolar(x, y),
+		    r = polarCoords.r,
+	            theta = {},
+	            motorPower,
+	            phaseFactor;
+	motorPower = scale(r, 0, 1.4, 90, 255); 
+	theta.rad = polarCoords.theta;
+	theta.deg = polarCoords.theta * 360 / (2 * Math.PI);
+        phaseFactor = (Math.cos(theta.rad) * Math.cos(theta.rad));
+	console.log('theta.deg = ' + theta.deg);
+	console.log('theta.rad = ' + theta.rad);
+        console.log('phaseFactor = ' + phaseFactor);
+	if (r > 1) {
+		r = 1;
+	}
+	if (r < .3) {
+		motora.stop();
+		motorb.stop();
+	}
 
-            	}
-                	else {
-                    	if (Math.abs(y) < 0.06) {
-                        	motora.stop();
-                        	motorb.stop();
-                    	}
-                    		else {
-                        		if (y < -0.06) {
-                            			motora.forward(scale(y, 0, -1, 90, 255));
-                           	 		motorb.forward(scale(y, 0, -1, 90, 255));
-                        		}	
-                                        if (y > 0.06) {
-                                    		motora.reverse(scale(y, 0, 1, 90, 255));
-                                         	motorb.reverse(scale(y, 0, 1, 90, 255));
-                                        }
-                            	}
-                	}
+	else {	
+		if (theta.deg >= 0 && theta.deg < 90) {
+			// Quadrant 1: left motor lead (fwd), right motor lag
+			motora.forward(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
+		else if (theta.deg >= 90 && theta.deg < 180) {
+			// Quadrant 2: right motor lead (rev), left motor lag
+			motorb.reverse(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+        	  	}
+			else { 
+              			motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}	
+		}
+		else if (theta.deg >=180 && theta.deg < 270) {
+			// Quadrant 3: left motor lead (rev), right motor lag
+			motora.reverse(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}	
+			else {
+				motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
+		else if (theta.deg >=270) {
+			// Quadrant 4: right motor lead (fwd), left motor lag
+			motorb.forward(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}	
+		}
 
+		}
 		return;
 	}
 	
@@ -109,7 +142,7 @@ board.on("ready", function() {
 			}
       			// **** LEFT STICK ****
                         if (data.stick == 'LEFT_STICK') {
-				moveRobot(data.X, data.Y);
+				moveRobot(data.X, -1 * data.Y);
                         }
          	}); 
 	});
