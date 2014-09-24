@@ -6,13 +6,9 @@ var express = require('express'),
     board = new five.Board({ port: "/dev/ttyAMA0" }),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
-    scale = five.Fn.scale;
+    scale = five.Fn.scale,
+    gimbalLock = false;
 
-//  ** Need to do this
-// Add scaling function from issue thread
-// servox.to(scale(data.X, -1, 1, 30, 150));
-// servoy.to(scale(data.Y, -1, 1, 30, 150));
-// Start express server, serving up static files in the RPi public folder
 app.use(express.static(__dirname + '/public'));
 server.listen(3000);
 console.log("Listening on Port 3000...");
@@ -28,11 +24,11 @@ board.on("ready", function() {
         var motora = new five.Motor([3, 12]),
             motorb = new five.Motor([11, 13]),
 	    servox = new five.Servo({
-                pin: 9,
+                pin: 10,
 		range: [37, 135]
             }),
             servoy = new five.Servo({
-		pin: 10,
+		pin: 5,
 		range: [40, 115]
 	    });
 	// ****************** place REPL declarations here *************************
@@ -58,6 +54,8 @@ board.on("ready", function() {
 	// ************* major function which takes analog input from right stick *
 	// ************* and turns it into 2-axis camera gimbal commands **********
 	var moveCameraGimbal = function(x, y) {
+		servox.to(scale(x, -1, 1, 37, 135));
+		servoy.to(scale(y, -1, 1, 40, 115));
 		return;
 	}
 
@@ -71,7 +69,7 @@ board.on("ready", function() {
 	            theta = {},
 	            motorPower,
 	            phaseFactor;
-	motorPower = scale(r, 0, 1.4, 90, 255); 
+	motorPower = scale(r, 0, 1.4, 70, 255); 
 	theta.rad = polarCoords.theta;
 	theta.deg = polarCoords.theta * 360 / (2 * Math.PI);
         phaseFactor = (Math.cos(theta.rad) * Math.cos(theta.rad));
@@ -135,9 +133,20 @@ board.on("ready", function() {
 	// **** SOCKETS SOCKETS SOCKETS SOCKETS SOCKETS ****************************
 	// **** program "loop" below ***********************************************
 	io.sockets.on('connection', function (socket) {
+		socket.on('button_down', function(data) {
+			if (data.button == 'RIGHT_TOP_SHOULDER') {
+				gimbalLock = !gimbalLock;
+				console.log("gimbalLock = " + gimbalLock);
+				if (!gimbalLock) {
+					// ToDo: figure out how to force a axis change
+				}
+			}
+		});
+
 		socket.on('axis_change', function(data) {
+
 			// **** RIGHT STICK ****
-			if (data.stick == 'RIGHT_STICK') {
+			if ((data.stick == 'RIGHT_STICK') && (!gimbalLock)) {
 				moveCameraGimbal(data.X, data.Y);	
 			}
       			// **** LEFT STICK ****
