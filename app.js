@@ -68,70 +68,68 @@ var moveCameraGimbal = function(x, y, servox, servoy) {
 // ************* major function which turns analog input from left stick ***
 // ************* and turns it into differential steering commands **********
 
-        var moveRobot = function(x, y, motora, motorb) {
-
-                var polarCoords = toPolar(x, y),
-                    r = polarCoords.r,
-                    theta = {},
-                    motorPower,
-                    phaseFactor;
-                motorPower = scale(r, .2, 1, 50, 255);
-                theta.rad = polarCoords.theta;
-                theta.deg = polarCoords.theta * 360 / (2 * Math.PI);
-                phaseFactor = (Math.cos(theta.rad) * Math.cos(theta.rad));
-                // console.log('theta.deg = ' + theta.deg);
-                // console.log('theta.rad = ' + theta.rad);
-                // console.log('phaseFactor = ' + phaseFactor);
-                if (r > 1) {
-                        r = 1;
-                }
-                if (r < .3) {
-                        motora.stop();
-                        motorb.stop();
-                }
-
-                else {
-                        if (theta.deg >= 0 && theta.deg < 90) {
-                                // Quadrant 1: left motor lead (fwd), right motor lag
-                                motora.forward(motorPower);
-                                if (Math.cos(2 * theta.rad) < 0) {
-                                        motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                                else {
-                                        motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                        }
-                        else if (theta.deg >= 90 && theta.deg < 180) {
-                                // Quadrant 2: right motor lead (rev), left motor lag
-                                motorb.reverse(motorPower);
-                                if (Math.cos(2 * theta.rad) < 0) {
-                                        motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                                else {
-                                        motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                        }
-                        else if (theta.deg >=180 && theta.deg < 270) {
-                                // Quadrant 3: left motor lead (rev), right motor lag
-                                motora.reverse(motorPower);
-                                if (Math.cos(2 * theta.rad) < 0) {
-                                        motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                                else {
-                                        motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                        }
-                        else if (theta.deg >=270) {
-                                // Quadrant 4: right motor lead (fwd), left motor lag
-                                motorb.forward(motorPower);
-                                if (Math.cos(2 * theta.rad) < 0) {
-                                        motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                                else {
-                                        motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
-                                }
-                        }
-
+var moveRobot = function(x, y, motora, motorb) {
+	var polarCoords = toPolar(x, y),
+	    r = polarCoords.r,
+	    theta = {},
+	    motorPower,
+	    phaseFactor;
+	// motorPower determines how much power you will give your motors
+	// .2 to 1 is the range of the left joystick which will cause the
+	// motors to receive a signal.  50 is the PWM values at which
+	// your motors will overcome the stall.
+	motorPower = scale(r, .2, 1, 50, 255);
+	theta.rad = polarCoords.theta;
+	theta.deg = polarCoords.theta * 360 / (2 * Math.PI);
+	phaseFactor = (Math.cos(theta.rad) * Math.cos(theta.rad));
+	if (r > 1) {
+		r = 1;
+	}
+        if (r < .3) {
+		motora.stop();
+		motorb.stop();
+	}
+	else {
+		if (theta.deg >= 0 && theta.deg < 90) {
+		// Quadrant 1: left motor lead (fwd), right motor lag
+			motora.forward(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
+		else if (theta.deg >= 90 && theta.deg < 180) {
+		// Quadrant 2: right motor lead (rev), left motor lag
+			motorb.reverse(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
+		else if (theta.deg >=180 && theta.deg < 270) {
+		// Quadrant 3: left motor lead (rev), right motor lag
+			motora.reverse(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motorb.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motorb.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
+		else if (theta.deg >=270) {
+		// Quadrant 4: right motor lead (fwd), left motor lag
+			motorb.forward(motorPower);
+			if (Math.cos(2 * theta.rad) < 0) {
+				motora.reverse(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+			else {
+				motora.forward(motorPower * Math.abs(Math.cos(2 * theta.rad)));
+			}
+		}
                 }
                 return;
         }
@@ -144,10 +142,6 @@ var moveCameraGimbal = function(x, y, servox, servoy) {
  //                                       moveCameraGimbal(0, 0);
   //                              }
   //                      }
-
-
-
-
 
 var buttonChange = function(button, buttonStatus) {
 	if (buttonStatus == 'button_down') {
@@ -255,7 +249,23 @@ var buttonChange = function(button, buttonStatus) {
 	return;
 }
 
+var mapRequest = function(servox, servoy, socket) {
 
+console.log("In the mapRequest section...");
+	// clickEvent(data);
+	intervalCount = 0;
+	var intObj = setInterval(function() {
+		moveCameraGimbal(scale(intervalCount, 0, 180, 37, 135), 80, servox, servoy);
+		console.log(pingDistance);
+		if (pingDistance <= 200) { socket.emit('mapPoint', toCartesian(intervalCount, pingDistance)); }
+		intervalCount++;
+		if (intervalCount > 180) {
+			clearInterval(intObj);
+			console.log("deviceState.axes[3] -- the y axis on the servo -- is " + deviceState.axes[3]);
+			moveCameraGimbal(scale(deviceState.axes[2], -1, 1, 37, 135), scale(deviceState.axes[3], -1, 1, 40, 115), servox, servoy);
+		}
+	}, 400);
+}
 
 board.on("ready", function() {
 
@@ -299,41 +309,25 @@ board.on("ready", function() {
 		socket.on('button_down', function(data) {
 			buttonChange (data.button, 'button_down'); 
 		});
-
 		socket.on('button_up', function(data) {
 			buttonChange (data.button, 'button_up');
 		});
-
 		socket.on('axis_change', function(data) {
-			// axisChange(data.stick, data.X, data.Y);
-
-			// **** RIGHT STICK ****
-			if ((data.stick == 'RIGHT_STICK') && (!deviceState.gimbalLock)) {
-				deviceState.axes[2] = data.X;
-				deviceState.axes[3] = data.Y;
-				moveCameraGimbal(scale(data.X, -1, 1, 37, 135), scale(data.Y, -1, 1, 40, 115), servox, servoy);	
-			}
-      			// **** LEFT STICK ****
-                        if (data.stick == 'LEFT_STICK') {
-				// deviceState.axes[0] = data.X;
-				// deviceState.axes[1] = data.Y;
-				moveRobot(data.X, -1 * data.Y, motora, motorb);
-                        }
+		        if ((data.stick == 'RIGHT_STICK') && (!deviceState.gimbalLock)) {
+				// axisChange('RIGHT_STICK', data.X, data.Y, servox, servoy, motora, motorb);	
+                		deviceState.axes[2] = data.X;
+		                deviceState.axes[3] = data.Y;
+                		moveCameraGimbal(scale(data.X, -1, 1, 37, 135), scale(data.Y, -1, 1, 40, 115), servox, servoy);
+        		}
+		        if (data.stick == 'LEFT_STICK') {
+                		deviceState.axes[0] = data.X;
+                		deviceState.axes[1] = data.Y;
+                		moveRobot(data.X, -1 * data.Y, motora, motorb);
+        		}
          	});
+		// This needs to be modified to a generic browserButton event which carries 'mapRequest' in the associated object
 		socket.on('mapRequest', function(data) { 
-			// Need to move this into its own function
-			console.log("In the mapRequest section...");
-			intervalCount = 0;
-			var intObj = setInterval(function() {
-				moveCameraGimbal(scale(intervalCount, 0, 180, 37, 135), 80);
-				console.log(pingDistance);
-				if (pingDistance <= 200) { socket.emit('mapPoint', toCartesian(intervalCount, pingDistance)); }
-				intervalCount++;
-				if (intervalCount > 180) {
-					clearInterval(intObj);
-					}
-				}
-				, 400);
-			});
+			mapRequest(servox, servoy, socket);
+		});
 	});
 });

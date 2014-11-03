@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<style>
+canvas {
+    border-style: solid;
+    border-width: 5px;
+}
+</style>
+
+	<title>NodeBot First Person Rover Front End</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+	<script src="js/gamepad.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+	<canvas id="mycanvas" width="600" height="600"></canvas>
+	<ul id="gamepads"></ul>
+	<p id="connect-notice">Connect your controller and press any button.</p>
+
+	<script>
+	$(document).ready(function() {
+		var gamepad = new Gamepad();
+		if (!gamepad.init()) {
+			alert('Your browser does not support gamepads, get the latest Google Chrome or Firefox.');
+		};
+		// On device connection, do these things:
+		gamepad.bind(Gamepad.Event.CONNECTED, function(device) {
+			// Display in console all the information about the object
+			console.log('Connected', device);
+			if (gamepad.count() != 0) {
+				$('#connect-notice').hide();
+			}
+			var mainWrap = $('#gamepad-' + device.index), // Substitute for the $('#gamepad-0') or whatever
+				statesWrap,
+				logWrap,
+				control,
+				value,
+				i;
+			// -- mainWrap.append('<strong>State</strong><ul id="states-' + device.index + '"></ul>');
+			// -- statesWrap = $('#states-' + device.index);
+			// logWrap = $('#log-' + device.index);
+			for (control in device.state) {
+				value = device.state[control];
+				// Brilliant little way of naming the states.  An example looks like this: "state-0-LEFT_STICK_X" where 0 is the device index and LEFT_STICK_X is the "control"
+			// --	statesWrap.append('<li>' + control + ': <span id="state-' + device.index + '-' + control + '">' + value + '</span></li>');
+			}
+		});
+		// I believe this is the polling function for the wrapper
+		gamepad.bind(Gamepad.Event.TICK, function(gamepads) {
+			// Declare some variables which will help us evaluate controller state as we poll
+			var gamepad,
+				wrap,
+				control,
+				value,
+				i,
+				j;
+			
+			for (i = 0; i < gamepads.length; i++) {
+				gamepad = gamepads[i];
+				wrap = $('#gamepad-' + i);
+
+				if (gamepad) {
+					for (control in gamepad.state) {
+						value = gamepad.state[control];
+						$('#state-' + gamepad.index + '-' + control + '').html(value);
+					}
+				}
+			}
+		});		
+		// On device disconnect, do these things:
+		gamepad.bind(Gamepad.Event.DISCONNECTED, function(device) {
+			// Display in console what has disconnected
+			console.log('Disconnected', device);
+			// Remove that device from the header
+			$('#gamepad-' + device.index).remove();
+			
+			// Show connect-notice if there are no more controllers detected.
+			if (gamepad.count() == 0) {
+				$('#connect-notice').show();
+			}
+		});
+	});
+	</script>
+	
+	<script>
+		var gamepad = new Gamepad();
+		var socket = io.connect('http://192.168.11.25');
+
+		$(document).ready(function() {
+			// Gamepad listening events
+			if (!gamepad.init()) {
+				alert('Your browser does not support gamepads, get the latest Google Chrome or Firefox.');
+			};
+			gamepad.bind(Gamepad.Event.BUTTON_DOWN, function(e) {
+				console.log(e.control + " button down...");
+				socket.emit('button_down', { button: e.control });
+			});
+			gamepad.bind(Gamepad.Event.BUTTON_UP, function(e) {
+				console.log(e.control + " button up...");
+				socket.emit('button_up', { button: e.control });
+			});
+			gamepad.bind(Gamepad.Event.AXIS_CHANGED, function(e) {
+				// e.axis changed to value e.value for gamepad e.gamepad
+				var gamepad,
+					control,
+					stick,
+					axisObject = {},
+					axisVar,	// This is the variable of the opposite axis that has triggered the change event
+					opAxisControl;
+				// Extracts the opposite axis
+				axisVar = (e.axis).slice(-1);
+
+				// Determine what stick has been changed
+				//stick = (e.axis).substring(0, (e.axis).length() - 2)
+				stick = (e.axis).toString();
+				stick = stick.slice(0, - 2);
+			
+				//console.log(e.gamepad['axes'][0], e.gamepad['axes'][1], e.gamepad['axes'][2], e.gamepad['axes'][3]);
+				if (stick == 'LEFT_STICK') {
+					axisObject = 	{	stick : stick, X : e.gamepad['axes'][0], Y:  e.gamepad['axes'][1] };
+				}
+				else {
+					axisObject = 	{	stick : stick, X : e.gamepad['axes'][2], Y:  e.gamepad['axes'][3] };
+				}
+				console.log(axisObject);
+				socket.emit('axis_change', axisObject);
+			});	
+		});
+	</script>
+	
+	<button onclick="emitMapper()">Ultrasonic Map</button>
+	
+	<script>
+		var canvas = document.getElementById('mycanvas');
+		var context = canvas.getContext('2d');
+		// context.rect(0, 0, 300, 300);
+		context.lineWidth = 1;
+		context.strokeStyle = 'black';
+		context.stroke();
+		function emitMapper() {
+			context.arc(300, 300, 15, 0, 2 * Math.PI);
+			context.fillStyle="red";
+			context.fill();
+			console.log("emitMapper clicked...");
+			socket.emit('mapRequest', "Hello server");
+		}
+		
+		socket.on('mapPoint', function(data) {
+			console.log(parseInt(300 + data.x), parseInt(300 - data.y));
+			context.fillRect(parseInt(300 + data.x), parseInt(300 - data.y), 4, 4);
+		});
+	</script>
+
+
+</body>
+</html>
